@@ -1,9 +1,7 @@
 // Import necessary modules and types
 import Fetch from "@/utils/Fetch";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { Dayjs } from "dayjs";
-
-// ToDo: Add infinite query support
 
 // Define interfaces for the data structures used in the calendar
 export interface IRoomInventory {
@@ -54,26 +52,30 @@ interface IResponse {
   nextCursor?: number; // available if you pass a cursor as query param
 }
 
-// Custom hook to fetch room rate availability calendar data
+// Custom hook to fetch room rate availability calendar data with infinite scrolling
 export default function useRoomRateAvailabilityCalendar(params: IParams) {
-  // Construct the URL with query parameters
-  const url = new URL(
-    `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/property/${params.property_id}/rate-calendar/assessment`
-  );
+  return useInfiniteQuery({
+    queryKey: ["property_room_calendar", params.property_id],
+    queryFn: async ({ pageParam = 0 }: { pageParam: number }) => {
+      // Construct the URL with query parameters
+      const url = new URL(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/property/${params.property_id}/rate-calendar/assessment`
+      );
 
-  url.search = new URLSearchParams({
-    start_date: params.start_date,
-    end_date: params.end_date,
-    // cursor: "0", // for infinite scroll
-  }).toString();
+      url.search = new URLSearchParams({
+        start_date: params.start_date,
+        end_date: params.end_date,
+        cursor: pageParam.toString(), // Pass the cursor parameter
+      }).toString();
 
-  // Use React Query's useQuery hook to fetch data
-  return useQuery({
-    queryKey: ["property_room_calendar", params], // Unique query key
-    queryFn: async () =>
-      await Fetch<IResponse>({
+      // Fetch data from the API
+      const result = await Fetch<IResponse>({
         method: "GET",
         url,
-      }), // Fetch data from the API
+      });
+      return result.data;
+    },
+    getNextPageParam: (lastPage: IResponse) => lastPage.nextCursor, // Determine the next cursor for pagination
+    initialPageParam: 0, // Add initialPageParam property
   });
 }

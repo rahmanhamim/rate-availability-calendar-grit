@@ -357,20 +357,24 @@ export default function Page() {
           </Grid>
 
           {room_calendar.isSuccess
-            ? room_calendar.data.data.room_categories.map(
-                (room_category, key) => (
+            ? room_calendar.data.pages
+                .flatMap((page) => page.room_categories)
+                .map((room_category: any, key: any) => (
                   <RoomRateAvailabilityCalendar
                     key={key}
                     index={key}
                     InventoryRefs={InventoryRefs}
                     isLastElement={
-                      key === room_calendar.data.data.room_categories.length - 1
+                      key ===
+                      room_calendar.data.pages.flatMap(
+                        (page) => page.room_categories
+                      ).length -
+                        1
                     }
                     room_category={room_category}
                     handleCalenderScroll={handleCalenderScroll}
                   />
-                )
-              )
+                ))
             : null}
           {room_calendar.isLoading && (
             <Box
